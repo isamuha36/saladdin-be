@@ -71,20 +71,19 @@ class SocialAuthController extends Controller
             ]);
 
             return redirect($frontendUrl . '/auth/callback?' . $redirectQuery);
+            // return $token;
+
         } catch (\Exception $e) {
             // Jika Error (misal user membatalkan login atau koneksi putus)
             Log::error('Google Login Error: ' . $e->getMessage());
 
-            // --- UBAH BAGIAN INI ---
-            // Jangan redirect dulu, kita mau lihat errornya apa.
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(), // Tampilkan pesan error asli
-                'trace' => $e->getTraceAsString()
-            ], 500);
+            // return response()->json([
+            //     'status' => 'error',
+            //     'message' => $e->getMessage(), // Tampilkan pesan error asli
+            //     'trace' => $e->getTraceAsString()
+            // ], 500);
 
-            // KODE LAMA (Komentari dulu):
-            // return redirect($frontendUrl . '/auth/login?error=google_login_failed');
+            return redirect($frontendUrl . '/auth/login?error=google_login_failed');
         }
     }
 }
