@@ -16,7 +16,16 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+
+            // Nullable agar support Login Google (awal daftar gak punya password)
+            $table->string('password')->nullable();
+
+            // CUSTOM FIELDS 
+            $table->string('google_id')->nullable()->unique(); // Simpan ID Google
+            $table->string('avatar')->nullable(); // Foto Profil
+            $table->enum('role', ['admin', 'student'])->default('student');
+            $table->text('bio')->nullable(); // Deskripsi singkat user
+
             $table->rememberToken();
             $table->timestamps();
         });
