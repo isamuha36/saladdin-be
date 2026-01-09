@@ -19,6 +19,30 @@ class CourseRepository
     }
 
     // Method baru untuk Detail (Silabus)
+    public function getDetailCourseBySlug($slug)
+    {
+        return Course::select(
+            'id',
+            'title',
+            'slug',
+            'thumbnail',
+            'price',
+            'description',
+            'instructor_name'
+        )
+            ->with([
+                'sections' => function ($query) {
+                    // Pilih kolom section
+                    $query->select('id', 'course_id', 'title', 'sort_order');
+                },
+                // Pilih kolom lesson
+                'sections.lessons:id,section_id,title,slug,type'
+            ])
+            ->where('slug', $slug)
+            ->where('status', 'published')
+            ->firstOrFail();
+    }
+
     public function findBySlug($slug)
     {
         return Course::with(['sections.lessons.questions.options'])
@@ -54,5 +78,20 @@ class CourseRepository
     {
         $course = $this->findById($id);
         return $course->delete();
+    }
+
+    public function findLessonById($id)
+    {
+        // Ambil Lesson beserta Pertanyaan & Opsi (untuk jaga-jaga kalau dia Quiz)
+        return \App\Models\Lesson::with(['questions.options'])
+            ->findOrFail($id);
+    }
+
+    public function checkEnrollment($userId, $courseId)
+    {
+        return \App\Models\Enrollment::where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->where('status', 'active') // Hanya yang statusnya 'active' (sudah bayar)
+            ->exists();
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminContentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
@@ -17,6 +18,17 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+
+        Route::get('/lessons/{id}', [CourseController::class, 'showLesson']);
+    });
+
+    Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+        // --- CONTENT MANAGEMENT ROUTES ---
+        // 1. Create Section (Butuh ID Course)
+        Route::post('/courses/{courseId}/sections', [AdminContentController::class, 'storeSection']);
+
+        // 2. Create Lesson (Butuh ID Section)
+        Route::post('/sections/{sectionId}/lessons', [AdminContentController::class, 'storeLesson']);
     });
 
     Route::get('/courses', [CourseController::class, 'index']);

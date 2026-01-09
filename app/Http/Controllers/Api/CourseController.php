@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Http\Resources\CourseResource;
 use App\Http\Resources\CourseDetailResource;
+use App\Http\Resources\LessonResource;
 use App\Services\PublicCourseService;
 use Illuminate\Http\Request;
 
@@ -44,7 +45,19 @@ class CourseController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => new CourseDetailResource($course),
+            'data' => $course,
+        ]);
+    }
+
+    public function showLesson($id)
+    {
+        // 1. Ambil Data
+        $lesson = $this->courseService->getLessonDetail($id);
+
+        // 2. Return pakai Resource (Agar URL Video & Quiz aman)
+        return response()->json([
+            'status' => 'success',
+            'data' => new LessonResource($lesson),
         ]);
     }
 }

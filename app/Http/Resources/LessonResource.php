@@ -37,7 +37,6 @@ class LessonResource extends JsonResource
                             return [
                                 'id' => $opt->id,
                                 'text' => $opt->option_text,
-                                // 'is_correct' DIHAPUS demi keamanan!
                             ];
                         }),
                     ];
