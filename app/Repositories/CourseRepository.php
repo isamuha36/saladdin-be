@@ -6,6 +6,27 @@ use App\Models\Course;
 
 class CourseRepository
 {
+    // Public (Catalog)
+    public function getPublishedCourses($search = null)
+    {
+        $query = Course::where('status', 'published');
+
+        if ($search) {
+            $query->where('title', 'like', '%' . $search . '%');
+        }
+
+        return $query->latest()->get();
+    }
+
+    // Method baru untuk Detail (Silabus)
+    public function findBySlug($slug)
+    {
+        return Course::with(['sections.lessons.questions.options'])
+            ->where('slug', $slug)
+            ->where('status', 'published')
+            ->firstOrFail();
+    }
+
     // Ambil semua data (bisa dipaginate kalau mau)
     public function getAll()
     {

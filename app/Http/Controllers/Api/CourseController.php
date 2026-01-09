@@ -6,26 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Http\Resources\CourseResource;
 use App\Http\Resources\CourseDetailResource;
+use App\Services\PublicCourseService;
 use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
+    protected $courseService;
+
+    public function __construct(PublicCourseService $courseService)
+    {
+        $this->courseService = $courseService;
+    }
+    
     /**
      * 1. GET ALL COURSES (Catalog)
      * Endpoint: /api/courses
      */
     public function index(Request $request)
     {
-        // Ambil hanya yang statusnya 'published'
-        $query = Course::where('status', 'published');
-
-        // Fitur Pencarian Sederhana (?q=sejarah)
-        if ($request->has('q')) {
-            $query->where('title', 'like', '%' . $request->q . '%');
-        }
-
-        // Urutkan dari yang terbaru
-        $courses = $query->latest()->get();
+        // Panggil Service
+        $courses = $this->courseService->getCatalog($request->q);
 
         return response()->json([
             'status' => 'success',
@@ -39,13 +39,8 @@ class CourseController extends Controller
      */
     public function show($slug)
     {
-        // Cari kursus berdasarkan Slug
-        // Gunakan 'with' (Eager Loading) untuk mengambil Section & Lesson sekaligus
-        // Ini MENCEGAH query berulang-ulang (N+1 Problem) -> PENTING UNTUK PERFORMA
-        $course = Course::with(['sections.lessons.questions.options'])
-            ->where('slug', $slug)
-            ->where('status', 'published') // Pastikan cuma yang published
-            ->firstOrFail();
+        // Panggil Service
+        $course = $this->courseService->getCourseDetail($slug);
 
         return response()->json([
             'status' => 'success',
