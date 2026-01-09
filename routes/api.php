@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\SocialAuthController;
 
 Route::prefix('auth')->group(function () {
@@ -17,4 +18,7 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
     });
+
+    Route::get('/courses', [CourseController::class, 'index']);
+    Route::get('/courses/{slug}', [CourseController::class, 'show']);
 });
