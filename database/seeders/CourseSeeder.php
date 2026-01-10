@@ -34,37 +34,59 @@ class CourseSeeder extends Seeder
         // 3. LESSON 1: TIPE VIDEO (YOUTUBE)
         Lesson::create([
             'section_id' => $section1->id,
-            'title' => 'Pembangunan Kubah Shakhrah',
-            'slug' => 'pembangunan-kubah',
+            'title' => 'Saladin Camp Episode 1',
+            'slug' => 'saladin-camp-episode-1',
             'sort_order' => 1,
             'type' => 'video',
-            'video_source' => 'youtube',
-            'video_path' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Link Dummy
-            'content_text' => '<p>Video ini menjelaskan arsitektur awal kubah.</p>', // Overview
-            'is_preview' => true,
+
+            'content_source' => 'external',
+            'content_url' => 'https://youtu.be/cUlAnDoGXpM?si=g24vWtYN-4kgAr8i',
+            'content_path' => null,
+            'content_mime' => null,
+
+            'content_text' => '<p>Al I\'dad Al Ma\'rifi (Persiapan Pengetahuan) (Part 1)</p>',
         ]);
 
-        // 4. LESSON 2: TIPE TEXT (ARTIKEL)
+        // 4. LESSON 1B: TIPE DOCUMENT (PDF)
+        Lesson::create([
+            'section_id' => $section1->id,
+            'title' => 'Modul PDF',
+            'slug' => 'modul-pdf',
+            'sort_order' => 4,
+            'type' => 'document',
+            'content_source' => 'upload',
+            'content_path' => '',
+        ]);
+
+        // 5. LESSON 2: TIPE TEXT (ARTIKEL)
         Lesson::create([
             'section_id' => $section1->id,
             'title' => 'Arsitektur Interior',
             'slug' => 'arsitektur-interior',
             'sort_order' => 2,
             'type' => 'text',
+
+            'content_source' => null,
+            'content_url' => null,
+            'content_path' => null,
+            'content_mime' => null,
+
             'content_text' => '<h1>Detail Mosaik</h1><p>Mosaik di dalam masjid sangat indah...</p>',
         ]);
 
-        // 5. LESSON 3: TIPE QUIZ
+        // 6. LESSON 3: TIPE QUIZ
         $quiz = Lesson::create([
             'section_id' => $section1->id,
             'title' => 'Evaluasi Modul 1',
             'slug' => 'evaluasi-modul-1',
             'sort_order' => 3,
             'type' => 'quiz',
+
             'duration_minutes' => 15,
             'passing_grade' => 75,
-            'content_text' => '<p>Kerjakan kuis ini dengan teliti. KKM 75.</p>', // Instruksi Kuis
+            'content_text' => '<p>Kerjakan kuis ini dengan teliti. KKM 75.</p>',
         ]);
+
 
         // --- BIKIN SOAL UNTUK KUIS DI ATAS ---
 

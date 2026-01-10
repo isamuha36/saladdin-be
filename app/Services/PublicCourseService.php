@@ -29,13 +29,6 @@ class PublicCourseService
         // 1. Ambil data Lesson
         $lesson = $this->courseRepo->findLessonById($id);
 
-        // 2. LOGIKA SATPAM 👮‍♂️
-
-        // A. Kalau Preview (Gratis), lolos.
-        if ($lesson->is_preview) {
-            return $lesson;
-        }
-
         $user = Auth::user();
 
         // B. Kalau Admin, lolos (bebas akses semua).

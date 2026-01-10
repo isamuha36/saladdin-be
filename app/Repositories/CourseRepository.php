@@ -82,11 +82,10 @@ class CourseRepository
 
     public function findLessonById($id)
     {
-        // Ambil Lesson beserta Pertanyaan & Opsi (untuk jaga-jaga kalau dia Quiz)
-        return \App\Models\Lesson::with(['questions.options'])
+        return \App\Models\Lesson::with(['questions'])
             ->findOrFail($id);
     }
-
+    
     public function checkEnrollment($userId, $courseId)
     {
         return \App\Models\Enrollment::where('user_id', $userId)

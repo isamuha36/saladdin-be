@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\AdminContentService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminContentController extends Controller
 {
@@ -25,29 +26,59 @@ class AdminContentController extends Controller
         return response()->json(['status' => 'success', 'data' => $section]);
     }
 
-    // 2. TAMBAH LESSON KE SECTION
     public function storeLesson(Request $request, $sectionId)
     {
-        // Validasi Kompleks sesuai Tipe Lesson
+        $messages = [
+            'content_url.regex' => 'Link video harus berasal dari YouTube (youtube.com / youtu.be).',
+        ];
+        $youtubeRegex = '/^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)[A-Za-z0-9_-]{6,}([&?].*)?$/i';
         $request->validate([
-            'title' => 'required|string',
-            'type' => 'required|in:video,text,quiz',
-            'video_source' => 'required_if:type,video|in:upload,youtube,vimeo',
-            // Jika source upload, wajib ada file video. Jika youtube, wajib url.
-            'video_file' => 'required_if:video_source,upload|mimes:mp4,mov,avi|max:50000', // 50MB limit
-            'video_url' => 'required_if:video_source,youtube|url',
-            'content_text' => 'nullable|string',
-        ]);
+            'title' => 'required|string|max:255',
+            'type'  => ['required', Rule::in(['video', 'document', 'text', 'quiz'])],
+
+            // untuk video & document wajib ada sumber konten
+            'content_source' => [
+                Rule::requiredIf(in_array($request->type, ['video', 'document'])),
+                Rule::in(['upload', 'external']),
+            ],
+
+            // file utama kalau upload (video/document)
+            'content_file' => [
+                Rule::requiredIf(($request->content_source === 'upload') && in_array($request->type, ['video', 'document'])),
+                'file',
+                'max:512000', // KB -> ~500MB
+                Rule::when($request->type === 'video', ['mimetypes:video/mp4,video/quicktime,video/x-msvideo']),
+                Rule::when($request->type === 'document', ['mimetypes:application/pdf']),
+            ],
+
+            // url utama kalau external (video/document)
+            'content_url' => [
+                Rule::requiredIf(($request->content_source === 'external') && in_array($request->type, ['video', 'document'])),
+                'url',
+                Rule::when(
+                    ($request->type === 'video' && $request->content_source === 'external'),
+                    ['regex:' . $youtubeRegex],
+                ),
+            ],
+
+
+            // text wajib punya konten text
+            'content_text' => [
+                Rule::requiredIf($request->type === 'text'),
+                'nullable',
+                'string',
+            ],
+        ], $messages);
 
         $lesson = $this->contentService->createLesson(
             $sectionId,
-            $request->except(['video_file', 'attachment_file']), // Data Text
-            $request->file('video_file'),      // File Video
-            $request->file('attachment_file')  // File PDF
+            $request->except(['content_file']),
+            $request->file('content_file')
         );
 
         return response()->json(['status' => 'success', 'data' => $lesson]);
     }
+
 
     // Nanti Update & Delete bisa menyusul...
 }

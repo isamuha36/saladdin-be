@@ -29,25 +29,40 @@ class AdminContentService
     }
 
     // 2. BUAT MATERI BARU (VIDEO/TEXT/QUIZ)
-    public function createLesson($sectionId, array $data, $fileVideo = null, $fileAttachment = null)
+    public function createLesson($sectionId, array $data, $contentFile = null)
     {
         $data['section_id'] = $sectionId;
         $data['slug'] = Str::slug($data['title']) . '-' . Str::random(5);
 
-        // Hitung urutan
         $maxOrder = \App\Models\Lesson::where('section_id', $sectionId)->max('sort_order');
-        $data['sort_order'] = $maxOrder + 1;
+        $data['sort_order'] = ($maxOrder ?? 0) + 1;
 
-        // A. Handle Video Upload
-        if ($fileVideo && $data['video_source'] === 'upload') {
-            $path = $fileVideo->store('lessons/videos', 'public');
-            $data['video_path'] = $path; // Simpan path saja
+        // reset field konten utama
+        $data['content_path'] = null;
+        $data['content_url']  = $data['content_url'] ?? null;
+        $data['content_mime'] = null;
+
+        // UPLOAD file (video/pdf)
+        if (($data['content_source'] ?? null) === 'upload' && $contentFile) {
+            $mime = $contentFile->getMimeType();
+            $data['content_mime'] = $mime;
+
+            if (($data['type'] ?? null) === 'video') {
+                $data['content_path'] = $contentFile->store('lessons/videos', 'public');
+                $data['content_url'] = null;
+            }
+
+            if (($data['type'] ?? null) === 'document') {
+                $data['content_path'] = $contentFile->store('lessons/documents', 'public');
+                $data['content_url'] = null;
+            }
         }
 
-        // B. Handle Attachment (PDF)
-        if ($fileAttachment) {
-            $path = $fileAttachment->store('lessons/attachments', 'public');
-            $data['attachment_path'] = $path;
+        // EXTERNAL url
+        if (($data['content_source'] ?? null) === 'external') {
+            $data['content_path'] = null;
+            $data['content_mime'] = null;
+            // content_url sudah ada dari request
         }
 
         return $this->contentRepo->createLesson($data);

@@ -29,7 +29,7 @@ class AdminCourseService
         // 2. Logic Upload Gambar
         if ($fileThumbnail) {
             $path = $fileThumbnail->store('thumbnails', 'public');
-            $data['thumbnail'] = url('storage/' . $path);
+            $data['thumbnail'] = $path;
         }
 
         // 3. Panggil Repo buat simpan
