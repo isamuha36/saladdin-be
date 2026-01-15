@@ -42,4 +42,16 @@ class Lesson extends Model
     {
         return $this->hasMany(CourseProgress::class);
     }
+
+    // Relasi: Lesson completions
+    public function completions()
+    {
+        return $this->hasMany(LessonCompletion::class);
+    }
+
+    // Relasi: Quiz attempts
+    public function attempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
 }

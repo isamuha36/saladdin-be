@@ -1,53 +1,87 @@
 <?php
+
 namespace App\Services;
 
+use App\Models\Course;
 use App\Repositories\CourseRepository;
-use Illuminate\Support\Facades\Auth;
 
 class PublicCourseService
 {
-    protected $courseRepo;
+    protected $courseRepository;
+    protected $enrollmentService;
+    protected $progressService;
 
-    public function __construct(CourseRepository $courseRepo)
-    {
-        $this->courseRepo = $courseRepo;
+    public function __construct(
+        CourseRepository $courseRepository,
+        EnrollmentService $enrollmentService,
+        ProgressService $progressService
+    ) {
+        $this->courseRepository = $courseRepository;
+        $this->enrollmentService = $enrollmentService;
+        $this->progressService = $progressService;
     }
 
+    /**
+     * Get course catalog
+     */
     public function getCatalog($search)
     {
-        return $this->courseRepo->getPublishedCourses($search);
+        return $this->courseRepository->getPublishedCourses($search);
     }
 
-    public function getCourseDetail($slug)
+    /**
+     * Get course detail with enrollment status and progress
+     */
+    public function getCourseDetail($slug, $user = null)
     {
-        return $this->courseRepo->getDetailCourseBySlug($slug);
+        $course = $this->courseRepository->getDetailCourseBySlug($slug);
+
+        $progress = null;
+        $isEnrolled = false;
+
+        if ($user) {
+            // Admin always has access
+            if (isset($user->role) && $user->role === 'admin') {
+                $isEnrolled = true;
+                $progress = 0;
+            } else {
+                // Check enrollment
+                $isEnrolled = $this->enrollmentService->isEnrolled($course, $user);
+
+                if ($isEnrolled) {
+                    $progress = $this->progressService->calculateProgress($course, $user);
+                }
+            }
+        }
+
+        // Attach progress & enrollment status
+        $course->progress = $progress;
+        $course->is_enrolled = $isEnrolled;
+
+        return $course;
     }
 
-
-    public function getLessonDetail($id)
+    /**
+     * Get user's enrolled courses with progress
+     */
+    public function getUserCourses($user)
     {
-        // 1. Ambil data Lesson
-        $lesson = $this->courseRepo->findLessonById($id);
+        $courseIds = $this->enrollmentService->getUserCourses($user);
 
-        $user = Auth::user();
-
-        // B. Kalau Admin, lolos (bebas akses semua).
-        if ($user->role === 'admin') {
-            return $lesson;
+        if (empty($courseIds)) {
+            return collect([]);
         }
 
-        // C. Cek Enrollment (Apakah sudah beli?)
-        // Kita cari Course ID dari relasi Lesson -> Section -> Course
-        $courseId = $lesson->section->course_id;
+        $courses = Course::with(['sections.lessons'])
+            ->whereIn('id', $courseIds)
+            ->get();
 
-        $hasAccess = $this->courseRepo->checkEnrollment($user->id, $courseId);
-
-        if (!$hasAccess) {
-            // Stop proses dan lempar Error 403 Forbidden
-            abort(403, 'Anda belum membeli kursus ini.');
+        // Attach progress for each course
+        foreach ($courses as $course) {
+            $course->is_enrolled = true;
+            $course->progress = $this->progressService->calculateProgress($course, $user);
         }
 
-        // 3. Kalau lolos semua pengecekan, kembalikan data
-        return $lesson;
+        return $courses;
     }
 }

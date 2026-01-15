@@ -19,6 +19,8 @@ class CourseDetailResource extends JsonResource
             'price_formatted' => 'Rp ' . number_format($this->price, 0, ',', '.'),
             'description' => $this->description,
             'sections' => SectionResource::collection($this->sections),
+            'is_enrolled' => $this->is_enrolled ?? false,
+            'progress' => $this->progress ?? null, // null jika guest atau belum enroll
         ];
     }
 }

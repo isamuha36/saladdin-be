@@ -13,10 +13,16 @@ class CourseResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
-            'thumbnail' => $this->thumbnail,
-            'instructor' => $this->instructor_name,
-            'price' => (int) $this->price,
-            'price_formatted' => 'Rp ' . number_format($this->price, 0, ',', '.'),
+            'thumbnail' => $this->thumbnail ?? null,
+            'status' => $this->status ?? null,
+            'instructor_name' => $this->instructor_name ?? null,
+            // progress and is_enrolled injected by service; default fallback
+            'progress' => $this->when(isset($this->progress), $this->progress, 0),
+            'is_enrolled' => $this->when(isset($this->is_enrolled), (bool) $this->is_enrolled, false),
+            // optional: include basic sections summary
+            'sections_count' => $this->whenLoaded('sections', function () {
+                return $this->sections->count();
+            }),
         ];
     }
 }

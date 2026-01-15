@@ -12,7 +12,14 @@ class SectionResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
-            'lessons' => LessonResource::collection($this->lessons),
+            'lessons' => $this->lessons->map(function ($lesson) {
+                return [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'slug' => $lesson->slug,
+                    'type' => $lesson->type,
+                ];
+            }),
         ];
     }
 }

@@ -18,28 +18,11 @@ class CourseRepository
         return $query->latest()->get();
     }
 
-    // Method baru untuk Detail (Silabus)
+    // Detail (Silabus)
     public function getDetailCourseBySlug($slug)
     {
-        return Course::select(
-            'id',
-            'title',
-            'slug',
-            'thumbnail',
-            'price',
-            'description',
-            'instructor_name'
-        )
-            ->with([
-                'sections' => function ($query) {
-                    // Pilih kolom section
-                    $query->select('id', 'course_id', 'title', 'sort_order');
-                },
-                // Pilih kolom lesson
-                'sections.lessons:id,section_id,title,slug,type'
-            ])
+        return Course::with(['sections.lessons'])
             ->where('slug', $slug)
-            ->where('status', 'published')
             ->firstOrFail();
     }
 
@@ -92,5 +75,10 @@ class CourseRepository
             ->where('course_id', $courseId)
             ->where('status', 'active') // Hanya yang statusnya 'active' (sudah bayar)
             ->exists();
+    }
+
+    public function findCourseById($courseId)
+    {
+        return Course::findOrFail($courseId);
     }
 }

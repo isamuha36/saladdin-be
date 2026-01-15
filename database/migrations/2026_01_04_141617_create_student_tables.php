@@ -36,10 +36,21 @@ return new class extends Migration
         Schema::create('quiz_attempts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('lesson_id')->constrained('lessons')->cascadeOnDelete(); // Kuis mana?
+            $table->foreignId('lesson_id')->constrained('lessons')->cascadeOnDelete();
 
-            $table->integer('score'); // Nilai Akhir (0-100)
-            $table->enum('status', ['pass', 'fail']); // Status Lulus/Gagal
+            // Waktu quiz
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('submitted_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+
+            // Skor dan status
+            $table->decimal('score', 5, 2)->default(0); // 0-100.00
+            $table->boolean('passed')->default(false);
+
+            // Detail jawaban
+            $table->integer('total_questions')->nullable();
+            $table->integer('correct_answers')->nullable();
+            $table->integer('wrong_answers')->nullable();
 
             $table->timestamps();
         });
