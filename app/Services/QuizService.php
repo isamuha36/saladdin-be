@@ -2,23 +2,24 @@
 
 namespace App\Services;
 
-use App\Models\LessonCompletion;
-use App\Models\QuizAttempt;
-use App\Models\QuizAnswer;
-use App\Repositories\CourseRepository;
+use App\Repositories\QuizRepository;
+use App\Repositories\LessonRepository;
 
 class QuizService
 {
-    protected $courseRepository;
+    protected $quizRepository;
+    protected $lessonRepository;
     protected $enrollmentService;
     protected $lessonAccessService;
 
     public function __construct(
-        CourseRepository $courseRepository,
+        QuizRepository $quizRepository,
+        LessonRepository $lessonRepository,
         EnrollmentService $enrollmentService,
         LessonAccessService $lessonAccessService
     ) {
-        $this->courseRepository = $courseRepository;
+        $this->quizRepository = $quizRepository;
+        $this->lessonRepository = $lessonRepository;
         $this->enrollmentService = $enrollmentService;
         $this->lessonAccessService = $lessonAccessService;
     }
@@ -28,7 +29,7 @@ class QuizService
      */
     public function getQuizQuestion($lessonId, $seq = 1, $user = null): array
     {
-        $lesson = $this->courseRepository->findLessonById($lessonId);
+        $lesson = $this->lessonRepository->findById($lessonId);
 
         if (!$lesson) {
             abort(404, 'Lesson not found.');
@@ -45,21 +46,17 @@ class QuizService
             abort(403, $accessCheck['message']);
         }
 
-        $questions = $lesson->questions()->with('options')->orderBy('id')->get();
+        $question = $this->quizRepository->getQuestionBySequence($lessonId, $seq);
 
-        if ($questions->isEmpty()) {
-            abort(404, 'No questions found for this quiz.');
-        }
-
-        $index = max(0, (int)$seq - 1);
-
-        if (!isset($questions[$index])) {
+        if (!$question) {
             abort(404, 'Question not found.');
         }
 
+        $totalQuestions = $this->quizRepository->getTotalQuestions($lessonId);
+
         return [
-            'question' => $questions[$index],
-            'total' => $questions->count(),
+            'question' => $question,
+            'total' => $totalQuestions,
         ];
     }
 
@@ -68,7 +65,7 @@ class QuizService
      */
     public function submitQuizAnswers($lessonId, $user, $answers): array
     {
-        $lesson = $this->courseRepository->findLessonById($lessonId);
+        $lesson = $this->lessonRepository->findById($lessonId);
 
         if (!$lesson || $lesson->type !== 'quiz') {
             abort(400, 'Invalid quiz lesson.');
@@ -81,7 +78,7 @@ class QuizService
             abort(403, $accessCheck['message']);
         }
 
-        $questions = $lesson->questions()->with('options')->get();
+        $questions = $this->quizRepository->getAllQuestions($lessonId);
 
         $totalPoints = 0;
         $earnedPoints = 0;
@@ -120,10 +117,10 @@ class QuizService
         $passed = $score >= $lesson->passing_grade;
 
         // Save quiz attempt with timing
-        $attempt = QuizAttempt::create([
+        $attempt = $this->quizRepository->createAttempt([
             'lesson_id' => $lessonId,
             'user_id' => $user->id,
-            'started_at' => now()->subMinutes($lesson->duration_minutes ?? 15), // estimate start time
+            'started_at' => now()->subMinutes($lesson->duration_minutes ?? 15),
             'submitted_at' => now(),
             'completed_at' => now(),
             'score' => $score,
@@ -135,7 +132,7 @@ class QuizService
 
         // Save individual answers
         foreach ($detailedAnswers as $ans) {
-            QuizAnswer::create([
+            $this->quizRepository->saveAnswer([
                 'quiz_attempt_id' => $attempt->id,
                 'question_id' => $ans['question_id'],
                 'selected_option_id' => $ans['user_answer_id'],
@@ -145,15 +142,7 @@ class QuizService
 
         // If passed, mark lesson as completed
         if ($passed) {
-            LessonCompletion::updateOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'lesson_id' => $lessonId,
-                ],
-                [
-                    'completed_at' => now(),
-                ]
-            );
+            $this->lessonRepository->markAsCompleted($lessonId, $user->id);
         }
 
         return [
@@ -175,8 +164,11 @@ class QuizService
      */
     public function getAttemptReview($attemptId, $user): array
     {
-        $attempt = QuizAttempt::with(['lesson.questions.options', 'answers'])
-            ->findOrFail($attemptId);
+        $attempt = $this->quizRepository->getAttemptById($attemptId);
+
+        if (!$attempt) {
+            abort(404, 'Quiz attempt not found.');
+        }
 
         // Authorization check
         if ($attempt->user_id !== $user->id && (!isset($user->role) || $user->role !== 'admin')) {
@@ -184,7 +176,7 @@ class QuizService
         }
 
         $detailedAnswers = [];
-        $questions = $attempt->lesson->questions()->with('options')->orderBy('id')->get();
+        $questions = $this->quizRepository->getAllQuestions($attempt->lesson_id);
 
         foreach ($questions as $index => $question) {
             $userAnswer = $attempt->answers->where('question_id', $question->id)->first();

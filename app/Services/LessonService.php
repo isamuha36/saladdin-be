@@ -2,21 +2,23 @@
 
 namespace App\Services;
 
-use App\Models\Lesson;
-use App\Models\LessonCompletion;
+use App\Repositories\LessonRepository;
 use App\Repositories\CourseRepository;
 
 class LessonService
 {
+    protected $lessonRepository;
     protected $courseRepository;
     protected $enrollmentService;
     protected $lessonAccessService;
 
     public function __construct(
+        LessonRepository $lessonRepository,
         CourseRepository $courseRepository,
         EnrollmentService $enrollmentService,
         LessonAccessService $lessonAccessService
     ) {
+        $this->lessonRepository = $lessonRepository;
         $this->courseRepository = $courseRepository;
         $this->enrollmentService = $enrollmentService;
         $this->lessonAccessService = $lessonAccessService;
@@ -27,7 +29,11 @@ class LessonService
      */
     public function getLessonDetail($id, $user)
     {
-        $lesson = $this->courseRepository->findLessonById($id);
+        $lesson = $this->lessonRepository->findWithCourse($id);
+
+        if (!$lesson) {
+            abort(404, 'Lesson not found.');
+        }
 
         // Check access (includes enrollment & sequential check)
         $accessCheck = $this->lessonAccessService->canAccessLesson($lesson, $user);
@@ -44,7 +50,7 @@ class LessonService
      */
     public function completeLesson($lessonId, $user): array
     {
-        $lesson = $this->courseRepository->findLessonById($lessonId);
+        $lesson = $this->lessonRepository->findById($lessonId);
 
         if (!$lesson) {
             abort(404, 'Lesson not found.');
@@ -66,19 +72,11 @@ class LessonService
         }
 
         // Check if already completed
-        $existing = LessonCompletion::where('user_id', $user->id)
-            ->where('lesson_id', $lessonId)
-            ->first();
-
-        if ($existing) {
+        if ($this->lessonRepository->isCompleted($lessonId, $user->id)) {
             return ['message' => 'Lesson sudah diselesaikan sebelumnya.'];
         }
 
-        LessonCompletion::create([
-            'user_id' => $user->id,
-            'lesson_id' => $lessonId,
-            'completed_at' => now(),
-        ]);
+        $this->lessonRepository->markAsCompleted($lessonId, $user->id);
 
         return ['message' => 'Lesson berhasil diselesaikan!'];
     }

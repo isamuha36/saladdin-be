@@ -38,8 +38,15 @@ class CourseController extends Controller
      */
     public function index(Request $request)
     {
-        // Panggil Service
         $courses = $this->courseService->getCatalog($request->q);
+
+        // Inject is_enrolled status for authenticated user
+        $user = $request->user();
+        if ($user) {
+            foreach ($courses as $course) {
+                $course->is_enrolled = $this->enrollmentService->isEnrolled($course->id, $user);
+            }
+        }
 
         return response()->json([
             'status' => 'success',

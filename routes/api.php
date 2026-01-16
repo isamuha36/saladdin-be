@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminCourseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SocialAuthController;
 
 Route::prefix('auth')->group(function () {
@@ -39,6 +40,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // GET MY COURSES
     Route::get('/my-courses', [CourseController::class, 'myCourses']);
+
+    // DASHBOARD
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/dashboard/continue-learning', [DashboardController::class, 'continueLearning']);
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
