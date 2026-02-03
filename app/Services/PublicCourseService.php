@@ -38,6 +38,7 @@ class PublicCourseService
 
         $progress = null;
         $isEnrolled = false;
+        $completedLessonIds = [];
 
         if ($user) {
             // Admin always has access
@@ -50,6 +51,12 @@ class PublicCourseService
 
                 if ($isEnrolled) {
                     $progress = $this->progressService->calculateProgress($course, $user);
+
+                    // Get completed lesson IDs for this user
+                    $completedLessonIds = \App\Models\LessonCompletion::where('user_id', $user->id)
+                        ->whereIn('lesson_id', $course->sections->flatMap->lessons->pluck('id'))
+                        ->pluck('lesson_id')
+                        ->toArray();
                 }
             }
         }
@@ -57,6 +64,7 @@ class PublicCourseService
         // Attach progress & enrollment status
         $course->progress = $progress;
         $course->is_enrolled = $isEnrolled;
+        $course->completed_lesson_ids = $completedLessonIds;
 
         return $course;
     }

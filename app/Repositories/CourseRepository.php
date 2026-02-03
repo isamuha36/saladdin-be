@@ -34,10 +34,42 @@ class CourseRepository
             ->firstOrFail();
     }
 
-    // Ambil semua data (bisa dipaginate kalau mau)
+    // Ambil semua data dengan filter dan pagination
+    public function getAllWithFilters(array $filters = [], int $perPage = 15)
+    {
+        $query = Course::withCount('students')->with('sections');
+
+        // Filter by status
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Search by title or instructor
+        if (!empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('title', 'like', '%' . $filters['search'] . '%')
+                    ->orWhere('instructor_name', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
+        // Filter by instructor
+        if (!empty($filters['instructor'])) {
+            $query->where('instructor_name', 'like', '%' . $filters['instructor'] . '%');
+        }
+
+        return $query->latest()->paginate($perPage);
+    }
+
     public function getAll()
     {
         return Course::withCount('students')->latest()->get();
+    }
+
+    public function findWithSections($id)
+    {
+        return Course::with(['sections.lessons', 'certificateConfig', 'certificateSignatures'])
+            ->withCount('students')
+            ->findOrFail($id);
     }
 
     public function findById($id)
@@ -68,7 +100,7 @@ class CourseRepository
         return \App\Models\Lesson::with(['questions'])
             ->findOrFail($id);
     }
-    
+
     public function checkEnrollment($userId, $courseId)
     {
         return \App\Models\Enrollment::where('user_id', $userId)

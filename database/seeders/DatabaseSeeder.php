@@ -9,11 +9,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Seed in order: Users -> Courses -> Enrollments
+        // Seed in order: Users -> Courses -> Enrollments -> Certificates
         $this->call([
             UserSeeder::class,
             CourseSeeder::class,
             EnrollmentSeeder::class,
+            CertificateSeeder::class,
         ]);
     }
 }

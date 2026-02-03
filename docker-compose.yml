@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: saladdin_app
+    restart: unless-stopped
     working_dir: /var/www
     volumes:
       - ./storage:/var/www/storage
@@ -19,6 +20,7 @@ services:
   web:
     image: nginx:1.27-alpine
     container_name: lms_saladdin
+    restart: unless-stopped
     ports:
       - "8001:80"
     volumes:
@@ -32,6 +34,7 @@ services:
   db:
     image: mysql:8.0
     container_name: saladdin_db
+    restart: unless-stopped
     ports:
       - "3308:3306"
     environment:

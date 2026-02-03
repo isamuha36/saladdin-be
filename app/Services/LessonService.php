@@ -11,17 +11,23 @@ class LessonService
     protected $courseRepository;
     protected $enrollmentService;
     protected $lessonAccessService;
+    protected $certificateService;
+    protected $progressService;
 
     public function __construct(
         LessonRepository $lessonRepository,
         CourseRepository $courseRepository,
         EnrollmentService $enrollmentService,
-        LessonAccessService $lessonAccessService
+        LessonAccessService $lessonAccessService,
+        CertificateService $certificateService,
+        ProgressService $progressService
     ) {
         $this->lessonRepository = $lessonRepository;
         $this->courseRepository = $courseRepository;
         $this->enrollmentService = $enrollmentService;
         $this->lessonAccessService = $lessonAccessService;
+        $this->certificateService = $certificateService;
+        $this->progressService = $progressService;
     }
 
     /**
@@ -78,6 +84,36 @@ class LessonService
 
         $this->lessonRepository->markAsCompleted($lessonId, $user->id);
 
-        return ['message' => 'Lesson berhasil diselesaikan!'];
+        // Check if course is now 100% complete and issue certificate
+        $lesson = $this->lessonRepository->findWithCourse($lessonId);
+        $courseId = $lesson->section->course_id;
+
+        $certificate = $this->checkAndIssueCertificate($user->id, $courseId);
+
+        $response = ['message' => 'Lesson berhasil diselesaikan!'];
+
+        if ($certificate) {
+            $response['certificate_issued'] = true;
+            $response['certificate_number'] = $certificate->certificate_number;
+            $response['message'] = 'Selamat! Anda telah menyelesaikan course ini dan mendapatkan sertifikat!';
+        }
+
+        return $response;
+    }
+
+    /**
+     * Check course completion and issue certificate if 100%
+     */
+    protected function checkAndIssueCertificate(int $userId, int $courseId)
+    {
+        // Check if progress is 100%
+        $progress = $this->progressService->calculateProgress($userId, $courseId);
+
+        if ($progress >= 100.00) {
+            // Issue certificate if not already issued
+            return $this->certificateService->issueCertificate($userId, $courseId);
+        }
+
+        return null;
     }
 }

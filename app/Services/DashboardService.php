@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\LessonCompletion;
 use App\Models\Lesson;
+use App\Models\Certificate;
 
 class DashboardService
 {
@@ -47,8 +48,8 @@ class DashboardService
             }
         }
 
-        // Certificates (courses with 100% completion)
-        $certificates = $completed;
+        // Get actual certificate count from database
+        $certificates = Certificate::where('user_id', $user->id)->count();
 
         return [
             'total_enrolled' => $totalEnrolled,

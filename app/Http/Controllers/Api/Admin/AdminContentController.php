@@ -16,7 +16,29 @@ class AdminContentController extends Controller
         $this->contentService = $contentService;
     }
 
-    // 1. TAMBAH SECTION KE KURSUS
+    // ============ SECTION CRUD ============
+
+    /**
+     * Get all sections for a course
+     */
+    public function indexSections($courseId)
+    {
+        $sections = $this->contentService->getSectionsByCourse($courseId);
+        return response()->json(['status' => 'success', 'data' => $sections]);
+    }
+
+    /**
+     * Get single section with lessons
+     */
+    public function showSection($sectionId)
+    {
+        $section = $this->contentService->getSectionDetail($sectionId);
+        return response()->json(['status' => 'success', 'data' => $section]);
+    }
+
+    /**
+     * Create section
+     */
     public function storeSection(Request $request, $courseId)
     {
         $request->validate(['title' => 'required|string']);
@@ -26,6 +48,58 @@ class AdminContentController extends Controller
         return response()->json(['status' => 'success', 'data' => $section]);
     }
 
+    /**
+     * Update section
+     */
+    public function updateSection(Request $request, $sectionId)
+    {
+        $request->validate(['title' => 'required|string']);
+
+        $section = $this->contentService->updateSection($sectionId, $request->only('title', 'order'));
+
+        return response()->json(['status' => 'success', 'data' => $section]);
+    }
+
+    /**
+     * Delete section
+     */
+    public function destroySection($sectionId)
+    {
+        $this->contentService->deleteSection($sectionId);
+
+        return response()->json(['status' => 'success', 'message' => 'Section deleted successfully']);
+    }
+
+    // ============ LESSON CRUD ============
+
+    /**
+     * Get all lessons in a section
+     */
+    public function indexLessons($sectionId)
+    {
+        $lessons = $this->contentService->getLessonsBySection($sectionId);
+        return response()->json(['status' => 'success', 'data' => $lessons]);
+    }
+
+    /**
+     * Get single lesson detail
+     */
+    public function showLesson($lessonId)
+    {
+        try {
+            $lesson = $this->contentService->getLessonDetail($lessonId);
+            return response()->json(['status' => 'success', 'data' => $lesson]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lesson not found with ID: ' . $lessonId
+            ], 404);
+        }
+    }
+
+    /**
+     * Create lesson (video, document, text, or quiz)
+     */
     public function storeLesson(Request $request, $sectionId)
     {
         $messages = [
@@ -76,9 +150,125 @@ class AdminContentController extends Controller
             $request->file('content_file')
         );
 
+        return response()->json(['status' => 'success', 'data' => $lesson], 201);
+    }
+
+    /**
+     * Update lesson
+     */
+    public function updateLesson(Request $request, $lessonId)
+    {
+        $request->validate([
+            'title' => 'nullable|string|max:255',
+            'type' => ['nullable', Rule::in(['video', 'document', 'text', 'quiz'])],
+            'content_text' => 'nullable|string',
+            'content_url' => 'nullable|url',
+        ]);
+
+        $lesson = $this->contentService->updateLesson(
+            $lessonId,
+            $request->except(['content_file']),
+            $request->file('content_file')
+        );
+
         return response()->json(['status' => 'success', 'data' => $lesson]);
     }
 
+    /**
+     * Delete lesson
+     */
+    public function destroyLesson($lessonId)
+    {
+        $this->contentService->deleteLesson($lessonId);
 
-    // Nanti Update & Delete bisa menyusul...
+        return response()->json(['status' => 'success', 'message' => 'Lesson deleted successfully']);
+    }
+
+    // ============ QUIZ BUILDER (Save Questions 1-1) ============
+
+    /**
+     * Get quiz with all questions for editing
+     */
+    public function getQuizBuilder($lessonId)
+    {
+        $quiz = $this->contentService->getQuizWithQuestions($lessonId);
+        return response()->json(['status' => 'success', 'data' => $quiz]);
+    }
+
+    /**
+     * Add single question to quiz (save 1-1)
+     */
+    public function storeQuestion(Request $request, $lessonId)
+    {
+        $request->validate([
+            'question_text' => 'required|string',
+            'points' => 'required|integer|min:1',
+            'sequence' => 'nullable|integer',
+            'options' => 'required|array|min:2',
+            'options.*.option_text' => 'required|string',
+            'options.*.is_correct' => 'required|boolean',
+        ]);
+
+        $question = $this->contentService->addQuestionToQuiz(
+            $lessonId,
+            $request->only(['question_text', 'points', 'sequence']),
+            $request->input('options')
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Question added successfully',
+            'data' => $question
+        ], 201);
+    }
+
+    /**
+     * Update single question
+     */
+    public function updateQuestion(Request $request, $questionId)
+    {
+        $request->validate([
+            'question_text' => 'nullable|string',
+            'points' => 'nullable|integer|min:1',
+            'sequence' => 'nullable|integer',
+            'options' => 'nullable|array|min:2',
+            'options.*.id' => 'nullable|integer',
+            'options.*.option_text' => 'required_with:options|string',
+            'options.*.is_correct' => 'required_with:options|boolean',
+        ]);
+
+        $question = $this->contentService->updateQuestion(
+            $questionId,
+            $request->only(['question_text', 'points', 'sequence']),
+            $request->input('options')
+        );
+
+        return response()->json(['status' => 'success', 'data' => $question]);
+    }
+
+    /**
+     * Delete single question
+     */
+    public function destroyQuestion($questionId)
+    {
+        $this->contentService->deleteQuestion($questionId);
+
+        return response()->json(['status' => 'success', 'message' => 'Question deleted successfully']);
+    }
+
+    /**
+     * Reorder questions in quiz
+     */
+    public function reorderQuestions(Request $request, $lessonId)
+    {
+        $request->validate([
+            'questions' => 'required|array',
+            'questions.*.id' => 'required|integer',
+            'questions.*.sequence' => 'required|integer',
+        ]);
+
+        $this->contentService->reorderQuestions($lessonId, $request->input('questions'));
+
+        return response()->json(['status' => 'success', 'message' => 'Questions reordered successfully']);
+    }
 }

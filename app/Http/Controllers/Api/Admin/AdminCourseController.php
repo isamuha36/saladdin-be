@@ -16,12 +16,43 @@ class AdminCourseController extends Controller
         $this->courseService = $courseService;
     }
 
-    public function index()
+    /**
+     * Get all courses (with filtering, pagination)
+     */
+    public function index(Request $request)
     {
-        $courses = $this->courseService->getAllCourses();
-        return response()->json(['status' => 'success', 'data' => $courses]);
+        $filters = [
+            'status' => $request->input('status'),
+            'search' => $request->input('search'),
+            'instructor' => $request->input('instructor'),
+        ];
+
+        $perPage = $request->input('per_page', 15);
+
+        $courses = $this->courseService->getAllCourses($filters, $perPage);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $courses
+        ]);
     }
 
+    /**
+     * Get single course detail with sections and lessons
+     */
+    public function show($id)
+    {
+        $course = $this->courseService->getCourseDetail($id);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $course
+        ]);
+    }
+
+    /**
+     * Create new course
+     */
     public function store(Request $request)
     {
         // Controller cuma ngurus Validasi Request

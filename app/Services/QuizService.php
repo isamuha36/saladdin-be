@@ -11,17 +11,23 @@ class QuizService
     protected $lessonRepository;
     protected $enrollmentService;
     protected $lessonAccessService;
+    protected $certificateService;
+    protected $progressService;
 
     public function __construct(
         QuizRepository $quizRepository,
         LessonRepository $lessonRepository,
         EnrollmentService $enrollmentService,
-        LessonAccessService $lessonAccessService
+        LessonAccessService $lessonAccessService,
+        CertificateService $certificateService,
+        ProgressService $progressService
     ) {
         $this->quizRepository = $quizRepository;
         $this->lessonRepository = $lessonRepository;
         $this->enrollmentService = $enrollmentService;
         $this->lessonAccessService = $lessonAccessService;
+        $this->certificateService = $certificateService;
+        $this->progressService = $progressService;
     }
 
     /**
@@ -143,9 +149,13 @@ class QuizService
         // If passed, mark lesson as completed
         if ($passed) {
             $this->lessonRepository->markAsCompleted($lessonId, $user->id);
+
+            // Check if course is now 100% complete and issue certificate
+            $courseId = $lesson->section->course_id;
+            $certificate = $this->checkAndIssueCertificate($user->id, $courseId);
         }
 
-        return [
+        $response = [
             'attempt_id' => $attempt->id,
             'score' => $score,
             'passed' => $passed,
@@ -155,8 +165,15 @@ class QuizService
             'wrong_answers' => $wrongCount,
             'total_points' => $totalPoints,
             'earned_points' => $earnedPoints,
-            // Tidak return detailed_answers - user harus hit endpoint review
         ];
+
+        if ($passed && isset($certificate)) {
+            $response['certificate_issued'] = true;
+            $response['certificate_number'] = $certificate->certificate_number;
+            $response['message'] = 'Selamat! Quiz lulus dan Anda mendapatkan sertifikat!';
+        }
+
+        return $response;
     }
 
     /**
@@ -219,5 +236,19 @@ class QuizService
             'submitted_at' => $attempt->submitted_at,
             'detailed_answers' => $detailedAnswers,
         ];
+    }
+
+    /**
+     * Check course completion and issue certificate if 100%
+     */
+    protected function checkAndIssueCertificate(int $userId, int $courseId)
+    {
+        $progress = $this->progressService->calculateProgress($userId, $courseId);
+
+        if ($progress >= 100.00) {
+            return $this->certificateService->issueCertificate($userId, $courseId);
+        }
+
+        return null;
     }
 }

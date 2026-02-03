@@ -40,13 +40,19 @@ class User extends Authenticatable
     public function completedLessons()
     {
         return $this->belongsToMany(Lesson::class, 'course_progress', 'user_id', 'lesson_id')
-                    ->withPivot('completed_at');
+            ->withPivot('completed_at');
     }
 
     // Relasi: User enrolled courses
     public function courses()
     {
         return $this->belongsToMany(Course::class, 'enrollments', 'user_id', 'course_id')
-                    ->withPivot('status', 'enrolled_at');
+            ->withPivot('status', 'enrolled_at');
+    }
+
+    // Relasi: User certificates
+    public function certificates()
+    {
+        return $this->hasMany(Certificate::class);
     }
 }
