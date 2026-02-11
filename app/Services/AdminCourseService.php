@@ -44,7 +44,10 @@ class AdminCourseService
         }
 
         // 3. Panggil Repo buat simpan
-        return $this->courseRepo->create($data);
+        $course = $this->courseRepo->create($data);
+
+        // 4. Load relations untuk response lengkap
+        return $course->load(['sections', 'certificateConfig', 'certificateSignatures']);
     }
 
     public function updateCourse($id, array $data, $fileThumbnail = null)
@@ -57,7 +60,7 @@ class AdminCourseService
         // Logic Ganti Gambar
         if ($fileThumbnail) {
             // Get old course to delete old thumbnail
-            $course = $this->courseRepo->find($id);
+            $course = $this->courseRepo->findById($id);
             if ($course && $course->thumbnail) {
                 // Extract path from URL or use directly if it's a path
                 $oldPath = str_replace(asset('storage/'), '', $course->thumbnail);

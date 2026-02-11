@@ -1,40 +1,34 @@
 FROM php:8.4.1-fpm
 
-# System deps
+# Install system dependencies (combine to reduce layers)
 RUN apt-get update && apt-get install -y \
     git curl unzip zip \
     libpng-dev libjpeg-dev libfreetype6-dev \
-    libonig-dev libxml2-dev \
-    libzip-dev \
-    libicu-dev \
+    libonig-dev libxml2-dev libzip-dev libicu-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd intl zip opcache \
     && rm -rf /var/lib/apt/lists/*
 
-# PHP extensions (umum untuk Laravel)
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-      pdo_mysql mbstring exif pcntl bcmath gd intl zip opcache
-
-# Composer
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# php.ini (opsional)
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
-
+# Set working directory
 WORKDIR /var/www
 
-# Copy composer files dulu biar layer cache kepake
+# Copy composer files first (better caching)
 COPY composer.json composer.lock ./
 
-# Install dependencies (tanpa scripts dulu biar aman)
-RUN composer install --no-interaction --no-progress --prefer-dist --no-scripts
+# Install dependencies (this layer cached if composer files unchanged)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --prefer-dist
 
-# Copy source code
+# Copy rest of application
 COPY . .
 
-# Jalankan scripts setelah code lengkap (opsional)
-RUN composer dump-autoload --optimize
+# Generate autoload
+RUN composer dump-autoload --optimize --no-dev
 
-# Permission (opsional)
-RUN chown -R www-data:www-data /var/www
+# Set permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 CMD ["php-fpm"]

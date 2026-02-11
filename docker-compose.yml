@@ -7,7 +7,10 @@ services:
     restart: unless-stopped
     working_dir: /var/www
     volumes:
-      - ./storage:/var/www/storage
+      - storage_data:/var/www/storage
+      - storage_public:/var/www/storage/app/public
+    env_file:
+      - ./.env
     environment:
       APP_ENV: local
       PHP_MEMORY_LIMIT: 512M
@@ -24,7 +27,8 @@ services:
     ports:
       - "8001:80"
     volumes:
-      - ./:/var/www
+      - storage_public:/var/www/public/storage
+      - ./public/:/var/www/public
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
@@ -57,3 +61,5 @@ networks:
 
 volumes:
   db_data:
+  storage_data:
+  storage_public:
