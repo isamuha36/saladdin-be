@@ -79,7 +79,10 @@ class LessonService
 
         // Check if already completed
         if ($this->lessonRepository->isCompleted($lessonId, $user->id)) {
-            return ['message' => 'Lesson sudah diselesaikan sebelumnya.'];
+            return [
+                'message' => 'Lesson sudah diselesaikan sebelumnya.',
+                'is_completed' => true,
+            ];
         }
 
         $this->lessonRepository->markAsCompleted($lessonId, $user->id);

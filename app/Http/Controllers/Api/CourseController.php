@@ -12,6 +12,7 @@ use App\Services\EnrollmentService;
 use App\Services\LessonService;
 use App\Services\QuizService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CourseController extends Controller
 {
@@ -43,8 +44,10 @@ class CourseController extends Controller
         // Inject is_enrolled status for authenticated user
         $user = $request->user();
         if ($user) {
+            $isAdmin = isset($user->role) && $user->role === 'admin';
             foreach ($courses as $course) {
-                $course->is_enrolled = $this->enrollmentService->isEnrolled($course->id, $user);
+                // Admin always has access to all courses without enrollment
+                $course->is_enrolled = $isAdmin || $this->enrollmentService->isEnrolled($course->id, $user);
             }
         }
 
@@ -60,7 +63,10 @@ class CourseController extends Controller
      */
     public function show(Request $request, $slug)
     {
-        $course = $this->courseService->getCourseDetail($slug, $request->user());
+        // Route is public, so $request->user() always returns null (uses 'web' guard).
+        // Resolve the sanctum guard directly to support optional Bearer token auth.
+        $user = Auth::guard('sanctum')->user();
+        $course = $this->courseService->getCourseDetail($slug, $user);
 
         return response()->json([
             'status' => 'success',
@@ -80,6 +86,15 @@ class CourseController extends Controller
 
     public function enroll(Request $request, $courseId)
     {
+        // Validasi courseId harus integer positif
+        if (!ctype_digit((string) $courseId) || (int) $courseId <= 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Course ID tidak valid.',
+            ], 400);
+        }
+        $courseId = (int) $courseId;
+
         $user = $request->user();
 
         // Admin tidak perlu enroll
@@ -92,9 +107,17 @@ class CourseController extends Controller
 
         $result = $this->enrollmentService->enrollUser($user, $courseId);
 
+        // is_enrolled hanya true jika status active atau completed
+        $isEnrolled = in_array($result['status'] ?? null, ['active', 'completed']);
+
         return response()->json([
             'status' => 'success',
             'message' => $result['message'],
+            'data' => [
+                'enrollment_id' => $result['enrollment_id'] ?? null,
+                'enrollment_status' => $result['status'] ?? null,
+                'is_enrolled' => $isEnrolled
+            ]
         ]);
     }
 
@@ -163,6 +186,12 @@ class CourseController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => $result['message'],
+            'data' => [
+                'is_completed' => true,
+                'lesson_id' => (int) $lessonId,
+                'certificate_issued' => $result['certificate_issued'] ?? false,
+                'certificate_number' => $result['certificate_number'] ?? null,
+            ]
         ]);
     }
 

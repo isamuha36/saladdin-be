@@ -37,7 +37,12 @@ class EnrollmentService
 
         // Check if already enrolled
         if ($this->enrollmentRepo->isEnrolled($user->id, $courseId)) {
-            return ['message' => 'Anda sudah terdaftar di kursus ini.'];
+            $enrollment = $this->enrollmentRepo->getUserEnrollment($user->id, $courseId);
+            return [
+                'message' => 'Anda sudah terdaftar di kursus ini.',
+                'enrollment_id' => $enrollment->id,
+                'status' => $enrollment->status
+            ];
         }
 
         // Check existing enrollment
@@ -45,10 +50,18 @@ class EnrollmentService
 
         if ($existing) {
             if ($existing->status === 'pending') {
-                return ['message' => 'Enrollment Anda sedang diproses.'];
+                return [
+                    'message' => 'Enrollment Anda sedang diproses.',
+                    'enrollment_id' => $existing->id,
+                    'status' => 'pending'
+                ];
             }
             if ($existing->status === 'blocked') {
-                return ['message' => 'Enrollment Anda diblokir. Hubungi admin.'];
+                return [
+                    'message' => 'Enrollment Anda diblokir. Hubungi admin.',
+                    'enrollment_id' => $existing->id,
+                    'status' => 'blocked'
+                ];
             }
         }
 
@@ -61,7 +74,11 @@ class EnrollmentService
             ? 'Berhasil mendaftar ke kursus ini!'
             : 'Enrollment diajukan, tunggu approval.';
 
-        return ['message' => $message, 'enrollment_id' => $enrollment->id];
+        return [
+            'message' => $message,
+            'enrollment_id' => $enrollment->id,
+            'status' => $status
+        ];
     }
 
     /**

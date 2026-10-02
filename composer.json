@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "saladdin-community/saladdin-lms",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Saladdin Marifi LMS - Islamic Learning Management System Platform.",
     "keywords": [
         "laravel",
         "framework"
@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "inertiajs/inertia-laravel": "^3.5",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.24",

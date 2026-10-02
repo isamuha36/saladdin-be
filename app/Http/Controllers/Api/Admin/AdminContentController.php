@@ -163,6 +163,8 @@ class AdminContentController extends Controller
             'type' => ['nullable', Rule::in(['video', 'document', 'text', 'quiz'])],
             'content_text' => 'nullable|string',
             'content_url' => 'nullable|url',
+            'duration_minutes' => 'nullable|integer|min:1',
+            'passing_grade' => 'nullable|integer|min:0|max:100',
         ]);
 
         $lesson = $this->contentService->updateLesson(

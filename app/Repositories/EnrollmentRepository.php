@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\Enrollment;
 use App\Models\User;
 use App\Models\Course;
+use Illuminate\Database\QueryException;
 
 class EnrollmentRepository
 {
@@ -41,16 +42,26 @@ class EnrollmentRepository
     }
 
     /**
-     * Create new enrollment
+     * Create new enrollment (race-condition safe with unique constraint)
      */
     public function enroll(int $userId, int $courseId, string $status = 'active'): Enrollment
     {
-        return Enrollment::create([
-            'user_id' => $userId,
-            'course_id' => $courseId,
-            'status' => $status,
-            'enrolled_at' => now(),
-        ]);
+        try {
+            return Enrollment::create([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'status' => $status,
+                'enrolled_at' => now(),
+            ]);
+        } catch (QueryException $e) {
+            // Jika terjadi duplicate entry (race condition), ambil enrollment yang sudah ada
+            if ($e->errorInfo[1] == 1062) {
+                return Enrollment::where('user_id', $userId)
+                    ->where('course_id', $courseId)
+                    ->firstOrFail();
+            }
+            throw $e;
+        }
     }
 
     /**

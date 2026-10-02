@@ -41,10 +41,14 @@ class PublicCourseService
         $completedLessonIds = [];
 
         if ($user) {
-            // Admin always has access
+            // Admin always has access — calculate actual progress in case they've completed lessons
             if (isset($user->role) && $user->role === 'admin') {
                 $isEnrolled = true;
-                $progress = 0;
+                $progress = $this->progressService->calculateProgress($course, $user);
+                $completedLessonIds = \App\Models\LessonCompletion::where('user_id', $user->id)
+                    ->whereIn('lesson_id', $course->sections->flatMap->lessons->pluck('id'))
+                    ->pluck('lesson_id')
+                    ->toArray();
             } else {
                 // Check enrollment
                 $isEnrolled = $this->enrollmentService->isEnrolled($course, $user);

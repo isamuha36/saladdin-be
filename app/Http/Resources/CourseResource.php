@@ -15,6 +15,7 @@ class CourseResource extends JsonResource
             'slug' => $this->slug,
             'thumbnail' => $this->thumbnail ?? null,
             'status' => $this->status ?? null,
+            'price' => $this->price ?? 0,
             'instructor_name' => $this->instructor_name ?? null,
             // progress and is_enrolled injected by service; default fallback
             'progress' => $this->when(isset($this->progress), $this->progress, 0),

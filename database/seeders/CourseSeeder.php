@@ -168,7 +168,7 @@ class CourseSeeder extends Seeder
             'title' => 'Tafsir Tematik: Akhlak & Adab Sehari-hari',
             'slug' => 'tafsir-tematik-akhlak-adab',
             'thumbnail' => 'https://placehold.co/600x400/1b2a49/ffffff?text=Tafsir+Akhlak',
-            'price' => 10000,
+            'price' => 0,
             'status' => 'published',
             'instructor_name' => 'Ust. Salman',
             'description' => 'Mempelajari ayat-ayat pilihan tentang akhlak, adab, dan muamalah dalam kehidupan sehari-hari.',
