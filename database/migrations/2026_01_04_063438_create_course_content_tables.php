@@ -35,33 +35,33 @@ return new class extends Migration
         Schema::create('lessons', function (Blueprint $table) {
             $table->id();
             $table->foreignId('section_id')->constrained('sections')->cascadeOnDelete();
+
             $table->string('title');
             $table->string('slug');
             $table->integer('sort_order')->default(0);
-            
+
             // Tipe Utama
-            $table->enum('type', ['video', 'text', 'quiz']); 
-            
-            // --- LOGIC VIDEO ---
-            // 'upload' = file MP4 di server, 'youtube' = link URL, 'vimeo' = link URL
-            $table->enum('video_source', ['upload', 'youtube', 'vimeo'])->nullable(); 
-            $table->string('video_path')->nullable(); // Simpan Path File atau URL Youtube
+            $table->enum('type', ['video', 'document', 'text', 'quiz']);
 
-            // --- LOGIC TEXT & WYSIWYG ---
-            // Digunakan untuk: "Article Content" ATAU "Video Overview" ATAU "Quiz Description"
-            // Menggunakan longText agar muat HTML gambar/teks panjang (aman 4GB)
-            $table->longText('content_text')->nullable(); 
-            
-            // --- LOGIC ATTACHMENTS ---
-            // File PDF/PPT tambahan
-            $table->string('attachment_path')->nullable(); 
+            $table->enum('content_source', ['upload', 'external'])->nullable(); // upload | external
+            $table->string('content_path')->nullable();  // path file kalau upload (mp4/pdf)
+            $table->string('content_url')->nullable();   // url kalau external
+            $table->string('content_mime')->nullable();  // video/mp4 atau application/pdf
 
-            // --- LOGIC QUIZ CONFIG ---
-            $table->integer('duration_minutes')->nullable(); // Durasi kuis
-            $table->integer('passing_grade')->nullable(); // Nilai lulus (0-100)
-            
-            $table->boolean('is_preview')->default(false); // Gratis ditonton tanpa beli?
+            // Text / Overview / Instruksi (WYSIWYG HTML)
+            $table->longText('content_text')->nullable();
+
+            // Quiz config
+            $table->integer('duration_minutes')->nullable();
+            $table->integer('passing_grade')->nullable();
+
+            // Preview (kalau kamu masih butuh fitur preview)
+            $table->boolean('is_preview')->default(false);
+
             $table->timestamps();
+
+            // Optional (bagus): cegah slug tabrakan dalam 1 section
+            $table->unique(['section_id', 'slug']);
         });
     }
 

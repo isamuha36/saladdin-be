@@ -6,10 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class Lesson extends Model
 {
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'section_id',
+        'title',
+        'slug',
+        'type',             // video|document|text|quiz
+        'duration_minutes', // durasi quiz
+        'passing_grade',    // passing grade quiz
+        'sort_order',
 
-    protected $casts = [
-        'is_preview' => 'boolean', // Agar output JSON jadi true/false (bukan 1/0)
+        // konten utama
+        'content_source',  // upload|external
+        'content_path',    // untuk upload
+        'content_url',     // untuk external
+        'content_mime',    // mime file
+
+        // untuk text
+        'content_text',
     ];
 
     // Kebalikan: Lesson milik Section siapa?
@@ -28,5 +41,17 @@ class Lesson extends Model
     public function progress()
     {
         return $this->hasMany(CourseProgress::class);
+    }
+
+    // Relasi: Lesson completions
+    public function completions()
+    {
+        return $this->hasMany(LessonCompletion::class);
+    }
+
+    // Relasi: Quiz attempts
+    public function attempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
     }
 }
